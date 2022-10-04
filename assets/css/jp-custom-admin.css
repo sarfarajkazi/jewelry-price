@@ -1,0 +1,23 @@
+.jp-disable {
+    pointer-events: none;
+    color: #000 !important;
+    background: #85c980 !important;
+    font-weight: 800;
+}
+
+.jp-display-inline {
+    display: inline-block;
+    width: 30%;
+    font-size: 16px !important;
+    font-weight: 500;
+    color:#000;
+}
+
+.jp-prices-wrap {
+    background-color: #85c980;
+    border: 1px solid #eee;
+    font-weight: 800;
+}
+.product-auto-calculate-fields {
+    border-top: 1px solid #eee;
+}
