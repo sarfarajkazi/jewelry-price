@@ -188,7 +188,11 @@ function display_price_breakup_callback()
                                     if (isset($product_meta_values['metal_purity']) && !empty($product_meta_values['metal_purity'])) {
                                         echo 'Metal Purity: ' . return_actual_name($wc_product_type) . ' (91.7%): ' . $product_meta_values['metal_purity'] . ' gm<br>';
                                     }
-                                    echo '<br><strong>Stone Details</strong><br>';
+	
+                                    if (isset($product_meta_values['stone_name']) && !empty($product_meta_values['stone_name']) || isset($product_meta_values['stone_weight']) && !empty($product_meta_values['stone_weight']) || isset($product_meta_values['stone_cut']) && !empty($product_meta_values['stone_cut']) || isset($product_meta_values['stone_clarity']) && !empty($product_meta_values['stone_clarity']) ) {
+	                                    echo '<br><strong>Stone Details</strong><br>';
+                                    }
+                                    
                                     if (isset($product_meta_values['stone_name']) && !empty($product_meta_values['stone_name'])) {
                                         echo 'Name: ' . $product_meta_values['stone_name'] . '<br>';
                                     }

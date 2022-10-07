@@ -60,7 +60,7 @@ function jp_custom_setting()
 		'description' => '₹',
 	]);
 	
-	add_settings_field('jp_22_gold_price', __('24 carat Gold Price', 'jewelry-prices'), 'jp_input_callback', 'set-jewelry-prices', 'jp_settings_options', [
+	add_settings_field('jp_22_gold_price', __('22 carat Gold Price', 'jewelry-prices'), 'jp_input_callback', 'set-jewelry-prices', 'jp_settings_options', [
 		'label_for' => 'jp_22_gold_price',
 		'option_name' => $jewelry_option_name,
 		'input_name' => 'jp_22_gold_price',
@@ -101,8 +101,11 @@ function jp_theme_price_page()
             <div id="post-body" class="metabox-holder columns-2">
                 <div id="post-body-content"><?php settings_errors(); ?>
                     <form method="post" action="options.php" id="jp-custom-setting">
-						<?php settings_fields('jp-settings-group-section'); ?>
+						<?php //settings_fields('jp-settings-group-section'); ?>
 						<?php do_settings_sections('set-jewelry-prices'); ?>
+                        <?php
+                        wp_nonce_field('jp-prices','jp-prices');
+                        ?>
 						<?php submit_button(); ?>
                     </form>
                 </div>
@@ -110,6 +113,38 @@ function jp_theme_price_page()
         </div>
     </div>
 	<?php
+}
+add_action('init','init_jp_prices_save');
+function init_jp_prices_save(){
+    $nonce = isset($_REQUEST['jp-prices'])?$_REQUEST['jp-prices']:'';
+    if(wp_verify_nonce($nonce,'jp-prices')){
+        $option_name = 'jp_prices_options';
+        
+        update_option($option_name,$_REQUEST[$option_name]);
+	    
+	    $products = get_posts(
+		    array(
+			    'post_type'   => 'product',
+			    'numberposts' => -1,
+			    'post_status' => 'any',
+			    'fields'      => 'ids',
+			    'meta_query' => array(
+				    array(
+				        'key' => 'wc_jp_product_calculation',
+                        'value' => 'enable',
+				        'compare' => '=',
+				    )
+			    ),
+		    )
+	    );
+        if ($products){
+            foreach ($products as $product_id){
+	            woocommerce_product_custom_fields_save($product_id);
+            }
+        }
+        wp_redirect(admin_url('edit.php?post_type=product&page=set-jewelry-prices&jp-msg=success'));
+        die;
+    }
 }
 
 add_action('woocommerce_product_options_pricing', 'woocommerce_product_custom_fields', 1);
@@ -294,7 +329,12 @@ function woocommerce_product_custom_fields_save($post_id)
 	$product = wc_get_product($post_id);
 	
 	$on_off_options_val = get_post_meta($post_id, 'wc_jp_product_calculation', true);
-	$wc_jp_product_calculation = isset($_REQUEST['wc_jp_product_calculation']) ? $_REQUEST['wc_jp_product_calculation'] : 'disable';
+	if(empty($on_off_options_val)){
+		$on_off_options_val = 'disable';
+    }
+	
+	$wc_jp_product_calculation = isset($_REQUEST['wc_jp_product_calculation']) ? $_REQUEST['wc_jp_product_calculation'] : $on_off_options_val;
+	
 	$product->update_meta_data('wc_jp_product_calculation', $wc_jp_product_calculation);
 	
 	if ($on_off_options_val == 'enable' || (isset($_REQUEST['wc_jp_product_calculation']) && $_REQUEST['wc_jp_product_calculation'] == 'enable')) {
@@ -305,29 +345,39 @@ function woocommerce_product_custom_fields_save($post_id)
 		}
 		
 		
-		$wc_product_type = (isset($_POST['wc_product_type']) && !empty($_POST['wc_product_type'])) ? $_POST['wc_product_type'] : 'jp_22_gold_price';
+		
+		$wc_product_type = !empty($product->get_meta('wc_product_type'))?$product->get_meta('wc_product_type'):'jp_22_gold_price';
+		
+		$product_gross_weight = !empty($product->get_meta('product_gross_weight'))?$product->get_meta('product_gross_weight'):0;
+		$product_net_weight =  !empty($product->get_meta('product_net_weight'))?$product->get_meta('product_net_weight'):0;
+		$product_making_charge_percentage = !empty($product->get_meta('product_making_charge_percentage'))?$product->get_meta('product_making_charge_percentage'):0;
+		$product_other_charge = !empty($product->get_meta('product_other_charge'))?$product->get_meta('product_other_charge'):0;
+		$product_discount_percentage = !empty($product->get_meta('product_discount_percentage'))?$product->get_meta('product_discount_percentage'):0;
+	 
+	 
+		$wc_product_type = (isset($_POST['wc_product_type']) && !empty($_POST['wc_product_type'])) ? $_POST['wc_product_type'] : $wc_product_type;
 		
 		$product->update_meta_data('wc_product_type', $wc_product_type);
 		
 		$daily_price_with_type = $jewelry_default_option_values[$wc_product_type];
 		
-		$product_gross_weight = isset($_POST['product_gross_weight']) ? $_POST['product_gross_weight'] : 0;
+		$product_gross_weight = isset($_POST['product_gross_weight']) ? $_POST['product_gross_weight'] :$product_gross_weight;
 		$product->update_meta_data('product_gross_weight', $product_gross_weight);
 		
-		$product_net_weight = isset($_POST['product_net_weight']) ? $_POST['product_net_weight'] : 0;
+		
+		$product_net_weight = isset($_POST['product_net_weight']) ? $_POST['product_net_weight'] : $product_net_weight;
 		$product->update_meta_data('product_net_weight', $product_net_weight);
 		
-		$product_making_charge_percentage = isset($_POST['product_making_charge_percentage']) ? $_POST['product_making_charge_percentage'] : 0;
+		$product_making_charge_percentage = isset($_POST['product_making_charge_percentage']) ? $_POST['product_making_charge_percentage'] : $product_making_charge_percentage;
 		$product->update_meta_data('product_making_charge_percentage', $product_making_charge_percentage);
 		
 		
-		$product_other_charge = isset($_POST['product_other_charge']) ? $_POST['product_other_charge'] : 0;
+		$product_other_charge = isset($_POST['product_other_charge']) ? $_POST['product_other_charge'] : $product_other_charge;
 		$product->update_meta_data('product_other_charge', $product_other_charge);
 		
-		$product_discount_percentage = isset($_POST['product_discount_percentage']) ? (float)$_POST['product_discount_percentage'] : 0;
+		$product_discount_percentage = isset($_POST['product_discount_percentage']) ? (float)$_POST['product_discount_percentage'] : $product_discount_percentage;
 		
 		$product->update_meta_data('product_discount_percentage', $product_discount_percentage);
-		
 		
 		$product_making_charge_per_gm = ceil(($product_making_charge_percentage * $daily_price_with_type) / 100);
 		
